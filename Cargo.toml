@@ -1,7 +1,8 @@
-
 [package]
 edition = { workspace = true }
+license = { workspace = true }
 name = "untisgram"
+
 [workspace]
 members = ["crates/*"]
 

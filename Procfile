@@ -1,1 +1,1 @@
-worker: ./target/release/untis_telegram_bot
+worker: ./target/release/untisgram

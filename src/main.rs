@@ -35,9 +35,9 @@ async fn main() {
         .from_env_lossy()
         .add_directive(
             if IS_PROD {
-                "untis_telegram_bot=info"
+                "untisgram=info"
             } else {
-                "untis_telegram_bot=trace"
+                "untisgram=trace"
             }
             .parse()
             .unwrap(),

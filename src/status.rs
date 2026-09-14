@@ -6,7 +6,7 @@ use webuntis::Homework;
 
 use crate::message::LabeledMessage;
 
-const REPOSITORY_URL: &str = "https://github.com/CleverWild/untis_telegram_bot";
+const REPOSITORY_URL: &str = "https://github.com/CleverWild/untisgram";
 
 #[derive(Debug, Clone)]
 pub struct StatusMessage {
