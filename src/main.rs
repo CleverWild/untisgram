@@ -155,7 +155,7 @@ async fn main() {
 
             tracing::info!("Starting worker for task: {:?}", task);
 
-            let school = match untis::schools::get_by_name(task.untis_school.as_str()).await {
+            let school = match webuntis::schools::get_by_name(task.untis_school.as_str()).await {
                 Ok(s) => s,
                 Err(e) => {
                     tracing::error!(

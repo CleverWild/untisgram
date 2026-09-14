@@ -6,13 +6,11 @@
 // tweak these to match exact types and use `Insertable` / `AsChangeset` as
 // required.
 
-use crate::{
-    schema::{bot_states, lessons, logs},
-};
+use crate::schema::{bot_states, lessons, logs};
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use diesel::{AsChangeset, Identifiable, Insertable, Queryable, Selectable};
-use serde::{Deserialize, Serialize};
 use diesel_derive_enum::DbEnum;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// BotTask represents a bot worker configuration.
@@ -322,7 +320,20 @@ impl BotTask {
 }
 
 /// Represents the status of a lesson (regular, cancelled, etc.)
-#[derive(DbEnum, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, strum::Display, Default)]
+#[derive(
+    DbEnum,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    Default,
+)]
 #[ExistingTypePath = "crate::schema::sql_types::LessonCode"]
 #[DbValueStyle = "snake_case"]
 #[serde(rename_all = "lowercase")]
@@ -346,7 +357,7 @@ pub enum LessonCode {
     restructed::Models,
 )]
 #[view(
-    UnownedLesson, 
+    UnownedLesson,
     derive(PartialEq, Eq)
     omit(bot_state)
 )]
@@ -459,8 +470,9 @@ pub fn delete_lessons_before(before_date: chrono::NaiveDate) -> eyre::Result<usi
         .map_err(|e| eyre::eyre!("failed to delete old lessons: {e}"))
 }
 
-
-#[derive(Debug, Clone, Queryable, Identifiable, Selectable, Serialize, Deserialize, restructed::Models)]
+#[derive(
+    Debug, Clone, Queryable, Identifiable, Selectable, Serialize, Deserialize, restructed::Models,
+)]
 #[view(
     NewLogEntry,
     derive(Insertable, Serialize, Deserialize),
@@ -517,8 +529,8 @@ impl LogEntry {
 /// Delete log entries with timestamp before provided UTC time.
 pub fn delete_logs_before(before: DateTime<Utc>) -> eyre::Result<usize> {
     use crate::diesel_impl::global_pool;
-    use diesel::prelude::*;
     use crate::schema::logs;
+    use diesel::prelude::*;
 
     let pool = global_pool()?;
     let mut conn = pool.get()?;

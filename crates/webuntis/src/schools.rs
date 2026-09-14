@@ -1,4 +1,4 @@
-use crate::{jsonrpc, params::FindSchoolParams, Error, School, SchoolSearchResult};
+use crate::{Error, School, SchoolSearchResult, jsonrpc, params::FindSchoolParams};
 
 // pub static mut LOCAL_ADDRESS: Option<IpAddr> = None;
 

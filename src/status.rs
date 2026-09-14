@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use chrono::{DateTime, NaiveTime, Timelike as _, Utc};
 use chrono_tz::Tz;
-use untis::Homework;
+use webuntis::Homework;
 
 use crate::message::LabeledMessage;
 
@@ -170,9 +170,7 @@ fn find_nearest_lesson(
     // If no current lesson, pick the next upcoming one (smallest date/time > now)
     lessons_iter
         .clone()
-        .filter(|lesson| {
-            lesson.date > date || (lesson.date == date && lesson.start_time > time)
-        })
+        .filter(|lesson| lesson.date > date || (lesson.date == date && lesson.start_time > time))
         .cloned()
         .min_by_key(|lesson| (lesson.date, lesson.start_time))
         .map(NearestLesson::Next)

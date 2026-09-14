@@ -1,35 +1,19 @@
+
 [package]
-edition = "2024"
-name = "untis_telegram_bot"
-version = "0.1.5"
-
-[dependencies]
-chrono = { workspace = true }
-chrono-tz = { workspace = true }
-config = { workspace = true }
-db = { workspace = true }
-eyre.workspace = true
-impl-tools.workspace = true
-serde = { workspace = true }
-serde_json = { workspace = true }
-strum = { workspace = true }
-tap = { workspace = true }
-teloxide = { workspace = true }
-thiserror = { workspace = true }
-tokio.workspace = true
-tracing = { workspace = true }
-tracing-appender = { workspace = true }
-tracing-subscriber = { workspace = true }
-untis = { path = "untis" }
-
+edition = { workspace = true }
+name = "untisgram"
 [workspace]
-members = ["db", "untis"]
+members = ["crates/*"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 chrono = { version = "0.4", features = ["serde"] }
 chrono-tz = "0.10"
 config = "0.15"
-db = { path = "db" }
+
 eyre = "0.6"
 impl-tools = "0.13"
 once_cell = "1.21"
@@ -47,3 +31,23 @@ tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1.26", features = ["serde", "v4"] }
+
+[dependencies]
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+config = { workspace = true }
+
+db = { package = "untisgram-db", path = "crates/db" }
+eyre = { workspace = true }
+impl-tools = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+strum = { workspace = true }
+tap = { workspace = true }
+teloxide = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-appender = { workspace = true }
+tracing-subscriber = { workspace = true }
+webuntis = { package = "untisgram-webuntis", path = "crates/webuntis" }

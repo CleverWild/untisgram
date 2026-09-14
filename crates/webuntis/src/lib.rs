@@ -1,14 +1,14 @@
 //! Library for accessing the [Untis](https://www.untis.at) JSON-RPC API.
 //!
-//! The core of this crate is the `untis::Client` struct. You can log in using `untis::Client::login()`.
+//! The core of this crate is the `webuntis::Client` struct. You can log in using `webuntis::Client::login()`.
 //!
 //! ## API
 //! This client uses the public Untis JSON-RPC API, which only has read-only, limited access.
 //!
 //! ## Examples
 //! ```rust
-//! # async fn run() -> Result<(), untis::Error> {
-//!   let results = untis::schools::search("School Name").await?;
+//! # async fn run() -> Result<(), untisgram_webuntis::Error> {
+//!   let results = untisgram_webuntis::schools::search("School Name").await?;
 //!   let school = match results.first() {
 //!     None => {
 //!       println!("No school found");

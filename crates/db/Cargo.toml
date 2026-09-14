@@ -1,19 +1,12 @@
 [package]
-edition = "2024"
-name = "db"
-version = "0.1.0"
+edition = { workspace = true }
+name = "untisgram-db"
 
 [dependencies]
 chrono = { workspace = true }
-diesel = { version = "2.0.4", features = [
-    "chrono",
-    "postgres",
-    "r2d2",
-    "serde_json",
-    "uuid",
-] }
+diesel = { version = "2.0", features = ["chrono", "postgres", "r2d2", "serde_json", "uuid"] }
 diesel-derive-enum = { version = "2.1", features = ["postgres"] }
-diesel_migrations = "2.0.2"
+diesel_migrations = "2.0"
 dotenvy = "0.15"
 eyre = { workspace = true }
 impl-tools = { workspace = true }
@@ -22,8 +15,8 @@ r2d2 = "0.8"
 restructed = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+strum = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 uuid = { workspace = true }
-strum = { workspace = true }

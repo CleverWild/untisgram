@@ -1,10 +1,7 @@
 use crate::datetime::{Date, Time};
 use db::{models::LessonCode, utils::AsTrimmedStr as _};
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    fmt::Debug,
-};
+use std::{collections::HashMap, fmt::Debug};
 use strum::{Display, FromRepr};
 
 /// The different types of elements that exist in the Untis API.

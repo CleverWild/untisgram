@@ -21,7 +21,7 @@ pub struct Chat {
 
 pub struct WorkerContext {
     pub bot: Bot,
-    pub untis_client: untis::Client,
+    pub untis_client: webuntis::Client,
     pub engaged_at: DateTime<Utc>,
     pub task: BotTask,
 }
@@ -130,7 +130,7 @@ async fn process_timetable(
     tracing::debug!("Fetching timetable");
 
     let date =
-        untis::Date(next_friday(chrono::Local::now().date_naive()) + chrono::Duration::days(7));
+        webuntis::Date(next_friday(chrono::Local::now().date_naive()) + chrono::Duration::days(7));
     let timetable = match target_class_name {
         Some(class_name) => {
             let classes = ctx.untis_client.classes().await?;
@@ -140,7 +140,7 @@ async fn process_timetable(
             })?;
 
             ctx.untis_client
-                .timetable_until(&id, &untis::ElementType::Class, &date)
+                .timetable_until(&id, &webuntis::ElementType::Class, &date)
                 .await?
         }
         None => ctx.untis_client.own_timetable_until(&date).await?,

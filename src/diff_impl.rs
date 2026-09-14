@@ -3,17 +3,17 @@ use db::models::LessonCode;
 
 #[derive(Debug, Clone)]
 pub enum Diff<'a> {
-    Added(&'a untis::Lesson),
+    Added(&'a webuntis::Lesson),
     Changed {
         from: &'a db::models::Lesson,
-        to: &'a untis::Lesson,
+        to: &'a webuntis::Lesson,
     },
 }
 
 impl Diff<'_> {
     pub fn find<'a>(
         prev_schedule: &'a [db::models::Lesson],
-        new_schedule: &'a [untis::Lesson],
+        new_schedule: &'a [webuntis::Lesson],
     ) -> Vec<Diff<'a>> {
         let mut diff = Vec::new();
 
@@ -37,7 +37,7 @@ impl Diff<'_> {
     }
 
     // Compare DB lesson with Untis lesson using UnownedLesson (fields relevant for messaging)
-    fn lessons_equal(prev: &db::models::Lesson, new: &untis::Lesson) -> bool {
+    fn lessons_equal(prev: &db::models::Lesson, new: &webuntis::Lesson) -> bool {
         // Date is not part of UnownedLesson; compare it explicitly to capture day changes
         if prev.date != new.date.0 {
             return false;
@@ -65,17 +65,17 @@ impl Diff<'_> {
         }
     }
 
-    pub fn start_time(&self) -> untis::Time {
+    pub fn start_time(&self) -> webuntis::Time {
         match self {
             Diff::Added(lesson) => lesson.start_time,
-            Diff::Changed { from, .. } => untis::Time(from.start_time),
+            Diff::Changed { from, .. } => webuntis::Time(from.start_time),
         }
     }
 
-    pub fn end_time(&self) -> untis::Time {
+    pub fn end_time(&self) -> webuntis::Time {
         match self {
             Diff::Added(lesson) => lesson.end_time,
-            Diff::Changed { from, .. } => untis::Time(from.end_time),
+            Diff::Changed { from, .. } => webuntis::Time(from.end_time),
         }
     }
 

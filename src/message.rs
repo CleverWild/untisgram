@@ -153,7 +153,7 @@ mod tests {
     use super::*;
     use db::models::LessonCode;
     use teloxide::Bot;
-    use untis::{IdItem, Lesson, LessonType};
+    use webuntis::{IdItem, Lesson, LessonType};
 
     // Helper function to create test IdItem
     fn test_id_item(id: isize, name: &str) -> IdItem {
@@ -176,7 +176,7 @@ mod tests {
         room: &str,
     ) -> Lesson {
         use chrono::NaiveDate;
-        use untis::{Date, Time};
+        use webuntis::{Date, Time};
 
         let date_parts: Vec<&str> = date_str.split('-').collect();
         let year = date_parts[0].parse().unwrap();
@@ -298,7 +298,7 @@ mod tests {
         }
     }
 
-    fn convert_to_db_entry(lesson: &untis::Lesson) -> db::models::Lesson {
+    fn convert_to_db_entry(lesson: &webuntis::Lesson) -> db::models::Lesson {
         let subjects = lesson.subjects.iter().map(|i| i.name.clone()).collect();
         let teachers = lesson.teachers.iter().map(|i| i.name.clone()).collect();
         let rooms = lesson.rooms.iter().map(|i| i.name.clone()).collect();

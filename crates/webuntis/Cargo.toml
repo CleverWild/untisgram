@@ -1,10 +1,11 @@
 [package]
-edition = "2024"
-name = "untis"
-version = "0.3.2"
+edition = { workspace = true }
+name = "untisgram-webuntis"
 
 [dependencies]
 chrono = { workspace = true }
+
+db = { package = "untisgram-db", path = "../db" }
 impl-tools = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
@@ -12,4 +13,3 @@ serde_json = { workspace = true }
 strum = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
-db = { path = "../db" }
