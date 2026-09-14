@@ -2,9 +2,8 @@ use crate::datetime::{Date, Time};
 use db::{models::LessonCode, utils::AsTrimmedStr as _};
 use serde::{Deserialize, Serialize};
 use std::{
-    borrow::Cow,
     collections::HashMap,
-    fmt::{self, Debug},
+    fmt::Debug,
 };
 use strum::{Display, FromRepr};
 

@@ -1,7 +1,7 @@
 use std::{convert::Infallible, time::Duration};
 
 use chrono::NaiveDate;
-use teloxide::{Bot, prelude::ChatId, types::MessageId};
+use teloxide::{Bot, prelude::ChatId};
 use tracing::Instrument;
 
 use crate::{

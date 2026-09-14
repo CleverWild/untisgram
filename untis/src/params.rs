@@ -6,7 +6,8 @@ use serde::Serialize;
 pub enum FindSchoolParams<'a> {
     Search { search: &'a str },
     ById { schoolid: &'a usize },
-    ByName { schoolname: &'a str },
+    // cleverwild: probably working but unneeded.
+    // ByName { schoolname: &'a str },
 }
 
 #[derive(Serialize)]

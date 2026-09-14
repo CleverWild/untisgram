@@ -1,4 +1,4 @@
-use chrono::{Duration, NaiveDate, TimeZone};
+use chrono::{Duration, TimeZone};
 use serde_json::Value;
 
 use crate::{Session, datetime::Date, error::Error, jsonrpc, params, resources::*};
@@ -7,13 +7,16 @@ use crate::{Session, datetime::Date, error::Error, jsonrpc, params, resources::*
 ///
 /// # Example
 /// ```rust
-/// let result = untis::Client::login("server.webuntis.com", "school", "username", "password");
+/// # async fn run() -> Result<(), untis::Error> {
+/// let result = untis::Client::login("server.webuntis.com", "school", "username", "password").await;
 /// match result {
 ///     Err(err) => println!("{}", err),
 ///     Ok(client) => {
 ///         let info = client.session();
 ///     }
 /// }
+/// # Ok(())
+/// # }
 /// ```
 pub struct Client {
     rpc_client: jsonrpc::Client,
