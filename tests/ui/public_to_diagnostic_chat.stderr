@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/public_to_diagnostic_chat.rs:11:46
+   |
+11 |     let _ = send_or_edit_message(&bot, chat, rendered, &mut None).await;
+   |             --------------------             ^^^^^^^^ expected `Rendered<Diagnostic>`, found `Rendered<Public>`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected struct `Rendered<Diagnostic>`
+              found struct `Rendered<untisgram::message::Public>`
+note: function defined here
+  --> src/utils.rs
+   |
+   | pub async fn send_or_edit_message<A>(
+   |              ^^^^^^^^^^^^^^^^^^^^

@@ -1,6 +1,6 @@
 //! Field system for extracting and formatting lesson data
 
-use crate::message::LabeledMessage;
+use crate::message::{Code, Either, Fragment, Render, Strike, Text};
 
 pub const FIELD_SEPARATOR: &str = ": ";
 pub const CHANGES_SEPARATOR: &str = " → ";
@@ -96,6 +96,12 @@ pub struct Field {
     pub value: String,
 }
 
+impl Fragment for Field {
+    fn parts(self) -> impl Render {
+        (Text(self.name), Text(FIELD_SEPARATOR), Code(self.value)).parts()
+    }
+}
+
 /// Represents a difference between two field values
 ///
 /// Invariant: `from` and `to` are not equal
@@ -132,47 +138,36 @@ impl FieldDiff {
         self.from != self.to
     }
 
-    /// Formats the field difference for display with MarkdownV2 escaping
-    pub fn format(&self) -> Option<LabeledMessage> {
-        let mut msg = LabeledMessage::new();
+    fn into_change(self) -> Option<FieldChange> {
         if !self.has_changes() {
-            if self.visibility != FieldVisibility::Changed && !self.from.is_empty() {
-                msg.push(self.name).push(FIELD_SEPARATOR).push(&self.from);
-                Some(msg)
-            } else {
+            let visible = self.visibility != FieldVisibility::Changed && !self.from.is_empty();
+            return visible.then_some(FieldChange::Unchanged(UnchangedField {
+                name: self.name,
+                value: self.from,
+            }));
+        }
+
+        match (self.from.is_empty(), self.to.is_empty()) {
+            (true, false) => Some(FieldChange::Added(AddedField {
+                name: self.name,
+                value: self.to,
+            })),
+            (false, false) => Some(FieldChange::Replaced(ReplacedField {
+                name: self.name,
+                from: self.from,
+                to: self.to,
+            })),
+            (false, true) => Some(FieldChange::Removed(RemovedField {
+                name: self.name,
+                value: self.from,
+            })),
+            (true, true) => {
+                tracing::warn!(
+                    "Unexpected field diff state: from_value='{}', to_value='{}'",
+                    self.from,
+                    self.to
+                );
                 None
-            }
-        } else {
-            match (self.from.is_empty(), self.to.is_empty()) {
-                (true, false) => {
-                    msg.push("Added ")
-                        .push(self.name)
-                        .push(FIELD_SEPARATOR)
-                        .push_code_inline(&self.to);
-                    Some(msg)
-                }
-                (false, false) => {
-                    msg.push(self.name)
-                        .push(FIELD_SEPARATOR)
-                        .push_code_inline(&self.from)
-                        .push(CHANGES_SEPARATOR)
-                        .push_code_inline(&self.to);
-                    Some(msg)
-                }
-                (false, true) => {
-                    msg.push(self.name)
-                        .push(FIELD_SEPARATOR)
-                        .enter_strikethrough(|msg| msg.push_code_inline(&self.from));
-                    Some(msg)
-                }
-                _ => {
-                    tracing::warn!(
-                        "Unexpected field diff state: from_value='{}', to_value='{}'",
-                        self.from,
-                        self.to
-                    );
-                    None
-                }
             }
         }
     }
@@ -192,9 +187,102 @@ impl FieldDiff {
     // }
 }
 
+impl Fragment for FieldDiff {
+    fn parts(self) -> impl Render {
+        self.into_change().parts()
+    }
+}
+
+enum FieldChange {
+    Unchanged(UnchangedField),
+    Added(AddedField),
+    Replaced(ReplacedField),
+    Removed(RemovedField),
+}
+
+impl Fragment for FieldChange {
+    fn parts(self) -> impl Render {
+        match self {
+            FieldChange::Unchanged(part) => Either::Left(Either::Left(part)),
+            FieldChange::Added(part) => Either::Left(Either::Right(part)),
+            FieldChange::Replaced(part) => Either::Right(Either::Left(part)),
+            FieldChange::Removed(part) => Either::Right(Either::Right(part)),
+        }
+        .parts()
+    }
+}
+
+struct UnchangedField {
+    name: &'static str,
+    value: String,
+}
+
+impl Fragment for UnchangedField {
+    fn parts(self) -> impl Render {
+        (Text(self.name), Text(FIELD_SEPARATOR), Text(self.value)).parts()
+    }
+}
+
+struct AddedField {
+    name: &'static str,
+    value: String,
+}
+
+impl Fragment for AddedField {
+    fn parts(self) -> impl Render {
+        (
+            Text("Added "),
+            Text(self.name),
+            Text(FIELD_SEPARATOR),
+            Code(self.value),
+        )
+            .parts()
+    }
+}
+
+struct ReplacedField {
+    name: &'static str,
+    from: String,
+    to: String,
+}
+
+impl Fragment for ReplacedField {
+    fn parts(self) -> impl Render {
+        (
+            Text(self.name),
+            Text(FIELD_SEPARATOR),
+            Code(self.from),
+            Text(CHANGES_SEPARATOR),
+            Code(self.to),
+        )
+            .parts()
+    }
+}
+
+struct RemovedField {
+    name: &'static str,
+    value: String,
+}
+
+impl Fragment for RemovedField {
+    fn parts(self) -> impl Render {
+        (
+            Text(self.name),
+            Text(FIELD_SEPARATOR),
+            Strike(Code(self.value)),
+        )
+            .parts()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::message::render_public;
+
+    fn render(diff: FieldDiff) -> String {
+        render_public(diff).into_string()
+    }
 
     #[test]
     fn format_no_change_visible() {
@@ -204,11 +292,7 @@ mod tests {
             to: "101".into(),
             visibility: FieldVisibility::Always,
         };
-        let formatted = diff.format();
-        assert_eq!(
-            formatted.map(|s| s.to_string()),
-            Some("Room: 101".to_string())
-        );
+        assert_eq!(render(diff), "Room: 101");
     }
 
     #[test]
@@ -219,7 +303,7 @@ mod tests {
             to: "Regular".into(),
             visibility: FieldVisibility::Changed,
         };
-        assert!(diff.format().is_none());
+        assert_eq!(render(diff), "");
     }
 
     #[test]
@@ -230,8 +314,7 @@ mod tests {
             to: "Exam".into(),
             visibility: FieldVisibility::Changed,
         };
-        let formatted = diff.format().map(|msg| msg.to_string());
-        assert_eq!(formatted.as_deref(), Some("Added Activity Type: `Exam`"));
+        assert_eq!(render(diff), "Added Activity Type: `Exam`");
     }
 
     #[test]
@@ -242,11 +325,7 @@ mod tests {
             to: "202".into(),
             visibility: FieldVisibility::Changed,
         };
-        let formatted = diff.format().map(|msg| msg.to_string());
-        assert_eq!(
-            formatted.as_deref(),
-            Some(format!("Room: `101`{CHANGES_SEPARATOR}`202`").as_str())
-        );
+        assert_eq!(render(diff), format!("Room: `101`{CHANGES_SEPARATOR}`202`"));
     }
 
     #[test]
@@ -258,8 +337,7 @@ mod tests {
             visibility: FieldVisibility::Changed,
         };
         // MarkdownV2 uses single tilde for strikethrough
-        let formatted = diff.format().map(|msg| msg.to_string());
-        assert_eq!(formatted.as_deref(), Some("Teacher: ~`Smith`~"));
+        assert_eq!(render(diff), "Teacher: ~`Smith`~");
     }
 
     #[test]
@@ -270,6 +348,15 @@ mod tests {
             to: String::new(),
             visibility: FieldVisibility::Always,
         };
-        assert!(diff.format().is_none());
+        assert_eq!(render(diff), "");
+    }
+
+    #[test]
+    fn field_renders_name_and_code_value() {
+        let field = Field {
+            name: "Subject",
+            value: "Math".to_string(),
+        };
+        assert_eq!(render_public(field).as_str(), "Subject: `Math`");
     }
 }

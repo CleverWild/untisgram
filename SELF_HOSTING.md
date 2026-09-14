@@ -15,7 +15,7 @@ cd untisgram
 mise install
 ```
 
-Before building, open [src/main.rs](src/main.rs) and set `DEBUG_TELEGRAM_CHAT` to your own Telegram chat ID. The bot sends a copy of every notification with extra debug details to that chat.
+Before building, open [src/lib.rs](src/lib.rs) and set `DEBUG_TELEGRAM_CHAT` to your own Telegram chat ID. The bot sends a copy of every notification with extra debug details to that chat.
 
 ```shell
 cargo build --release

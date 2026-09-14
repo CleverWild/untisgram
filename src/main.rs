@@ -2,29 +2,15 @@ use std::{
     collections::{HashMap, HashSet},
     time::Duration,
 };
-use teloxide::{Bot, prelude::ChatId};
+use teloxide::Bot;
 use tokio::task::JoinSet;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
     Layer as _, prelude::__tracing_subscriber_SubscriberExt as _, util::SubscriberInitExt as _,
 };
-
-mod cleanup;
-mod diff_impl;
-mod message;
-mod message_formatter;
-mod status;
-mod utils;
-mod work;
-
-use crate::work::{Chat, WorkerContext, working_loop};
-
-const IS_PROD: bool = !cfg!(debug_assertions);
-
-/// My telegram DM
-const DEBUG_TELEGRAM_CHAT: Chat = Chat {
-    id: ChatId(690963502),
-    thread_id: None,
+use untisgram::{
+    IS_PROD, cleanup,
+    work::{WorkerContext, working_loop},
 };
 
 #[tokio::main]

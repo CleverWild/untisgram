@@ -10,7 +10,7 @@ use teloxide::{
 };
 use tokio::time::Instant;
 
-use crate::{diff_impl::Diff, work::Chat};
+use crate::{diff_impl::Diff, message::Rendered, work::Chat};
 
 pub fn next_friday(from: NaiveDate) -> NaiveDate {
     let days_to_next_friday = (11 - from.weekday().num_days_from_monday()) % 7;
@@ -28,12 +28,13 @@ pub fn sort_diffs(diffs: &mut Vec<Diff>) {
 }
 
 #[tracing::instrument(skip(bot))]
-pub async fn send_or_edit_message(
+pub async fn send_or_edit_message<A>(
     bot: &Bot,
-    chat: Chat,
-    text: String,
+    chat: Chat<A>,
+    text: Rendered<A>,
     message_id: &mut Option<i32>,
 ) -> Result<Message, eyre::Report> {
+    let text = text.into_string();
     let message = if let Some(msg_id) = message_id {
         tracing::debug!("Editing existing message");
         bot.edit_message_text(chat.id, MessageId(*msg_id), text.clone())

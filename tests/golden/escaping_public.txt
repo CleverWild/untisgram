@@ -1,0 +1,13 @@
+Plain: a\_b\*c\[d\]\(e\)\~f\`g\>h\#i\+j\-k\=l\|m\{n\}o\.p\!q\\r
+*Bold: 1\.5 \* 2*
+_Italic: snake\_case_
+`inline \`tick\` and \\ backslash`
+```
+fn main() { println!("\`x\`\\n"); }
+```
+```c\+\+
+let x = 1;
+```
+~gone \(really\)`old-value`~
+||[Docs \(v2\) \[beta\]](https://example.com/a_(b\)?q=\`x\`)||
+||~nested\!~||

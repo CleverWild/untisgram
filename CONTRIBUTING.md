@@ -23,7 +23,7 @@
    bot_token = "123456:token"
    ```
 
-5. In [src/main.rs](src/main.rs), set `DEBUG_TELEGRAM_CHAT` to your own chat ID. Do not commit this change.
+5. In [src/lib.rs](src/lib.rs), set `DEBUG_TELEGRAM_CHAT` to your own chat ID. Do not commit this change.
 6. Run the bot:
 
    ```shell

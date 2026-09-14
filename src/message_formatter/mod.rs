@@ -4,8 +4,8 @@ pub mod formatters;
 
 use crate::{
     diff_impl::Diff,
-    message::LabeledMessage,
-    message_formatter::fields::{FIELD_SEPARATOR, Field, FieldDiff},
+    message::{Each, Either, Fragment, Newline, Render, Text},
+    message_formatter::fields::{Field, FieldDiff},
 };
 
 /// Primary entry point for formatting lesson difference messages
@@ -30,6 +30,16 @@ pub enum MessageField {
     Changed(FieldDiff),
 }
 
+impl Fragment for MessageField {
+    fn parts(self) -> impl Render {
+        match self {
+            MessageField::Normal(field) => Either::Left(field),
+            MessageField::Changed(diff) => Either::Right(diff),
+        }
+        .parts()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct LessonDiffBlock {
     header: MessageHeader,
@@ -43,107 +53,112 @@ impl LessonDiffBlock {
             fields,
         }
     }
+}
 
-    /// Convert this LessonMessage into a LabeledMessage for unified message handling
-    pub fn into_labeled_message(self) -> LabeledMessage {
-        let mut msg = LabeledMessage::new();
+impl Fragment for LessonDiffBlock {
+    fn parts(self) -> impl Render {
+        let header = match self.header {
+            MessageHeader::Changed => "Changes in lesson:",
+            MessageHeader::Added => "New lesson:",
+        };
+        let fields = self
+            .fields
+            .into_iter()
+            .enumerate()
+            .map(|(index, field)| ((index != 0).then_some(Newline), field));
 
-        match self.header {
-            MessageHeader::Changed => {
-                msg.push("Changes in lesson:").nl();
-            }
-            MessageHeader::Added => {
-                msg.push("New lesson:").nl();
-            }
-        }
-
-        for (i, field) in self.fields.iter().enumerate() {
-            if i != 0 {
-                msg.nl();
-            }
-
-            match field {
-                MessageField::Normal(field) => {
-                    msg.push(field.name);
-                    msg.push(FIELD_SEPARATOR);
-                    msg.push_code_inline(&field.value);
-                }
-                MessageField::Changed(diff) => {
-                    if let Some(formatted) = diff.format() {
-                        msg.extend(formatted);
-                    }
-                }
-            }
-        }
-
-        msg
+        (Text(header), Newline, Each(fields)).parts()
     }
 }
 
-pub fn apply_debug_info<'a>(
-    message: &'a mut LabeledMessage,
-    _entry: &db::models::BotTask,
-    diff: &Diff,
-) -> &'a mut LabeledMessage {
-    // Add debug information to the message
-    match diff {
-        Diff::Changed { from, to } => {
-            message.push("Debug info: Changed lesson from ");
-            message.push(format!("{:?}", from));
-            message.push(" to ");
-            message.push(format!("{:?}", to));
+/// Raw lesson data appended to the diagnostic notification.
+pub struct DebugInfo<'a>(pub Diff<'a>);
+
+impl Fragment for DebugInfo<'_> {
+    fn parts(self) -> impl Render {
+        match self.0 {
+            Diff::Changed { from, to } => Either::Left((
+                Text("Debug info: Changed lesson from "),
+                Text(format!("{from:?}")),
+                Text(" to "),
+                Text(format!("{to:?}")),
+            )),
+            Diff::Added(lesson) => Either::Right((
+                Text("Debug info: Added new lesson: "),
+                Text(format!("{lesson:?}")),
+            )),
         }
-        Diff::Added(lesson) => {
-            message.push("Debug info: Added new lesson: ");
-            message.push(format!("{:?}", lesson));
-        }
+        .parts()
     }
-    message
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::message_formatter::fields::FieldVisibility;
-
     use super::*;
+    use crate::{
+        message::render_public,
+        test_support::{Golden, assert_golden, date, db_lesson, untis_lesson},
+    };
 
     #[test]
-    fn test_output() {
-        let fields = vec![
-            MessageField::Normal(Field {
-                name: "Subject",
-                value: "Math".to_string(),
-            }),
-            MessageField::Normal(Field {
-                name: "Room",
-                value: "101".to_string(),
-            }),
-            MessageField::Changed(FieldDiff {
-                name: "Time",
-                from: "08:00 - 09:30".to_string(),
-                to: "09:00 - 10:30".to_string(),
-                visibility: FieldVisibility::Always,
-            }),
-        ];
-
-        let message = LessonDiffBlock::new(MessageHeader::Changed, fields);
-        let labeled = message.into_labeled_message();
-        println!("{}", labeled);
-    }
-
-    #[test]
-    fn test_labeled_message_conversion() {
-        // Test that LessonMessage properly converts to LabeledMessage
+    fn lesson_block_contains_header_and_values() {
         let fields = vec![MessageField::Normal(Field {
             name: "Subject",
             value: "Math".to_string(),
         })];
+        let block = LessonDiffBlock::new(MessageHeader::Added, fields);
+        assert_eq!(
+            render_public(block).as_str(),
+            "New lesson:\nSubject: `Math`"
+        );
+    }
 
-        let message = LessonDiffBlock::new(MessageHeader::Added, fields);
-        let labeled = message.into_labeled_message();
-        let output = labeled.to_string();
+    #[test]
+    fn golden_added_lesson() {
+        let mut lesson = untis_lesson(201, date(2025, 9, 18), 8, 9, "English", "Taylor", "E.1");
+        lesson.subst_text = Some("Bring dictionary!".to_string());
+        let block = format_message(Diff::Added(&lesson));
+        assert_golden(Golden::LessonAdded, render_public(block).as_str());
+    }
 
-        assert!(output.contains("New lesson"));
-        assert!(output.contains("Math"));
+    #[test]
+    fn golden_changed_lesson() {
+        let original = untis_lesson(
+            202,
+            date(2025, 9, 18),
+            10,
+            11,
+            "Mathematics",
+            "Smith",
+            "R.101",
+        );
+        let from = db_lesson(&original);
+        let mut to = untis_lesson(
+            202,
+            date(2025, 9, 18),
+            10,
+            12,
+            "Mathematics",
+            "Johnson",
+            "R.101",
+        );
+        to.rooms.clear();
+        to.subst_text = Some("Exam (room tba)".to_string());
+        let block = format_message(Diff::Changed {
+            from: &from,
+            to: &to,
+        });
+        assert_golden(Golden::LessonChanged, render_public(block).as_str());
+    }
+
+    #[test]
+    fn debug_info_describes_added_lesson() {
+        let lesson = untis_lesson(203, date(2025, 9, 19), 9, 10, "Art", "Lee", "A.3");
+        let rendered = render_public(DebugInfo(Diff::Added(&lesson)));
+        assert!(
+            rendered
+                .as_str()
+                .starts_with("Debug info: Added new lesson: Lesson \\{")
+        );
     }
 }

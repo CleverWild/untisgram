@@ -1,0 +1,7 @@
+Changes in lesson:
+Subject: `Mathematics`
+Time: `10:00 - 11:00` → `10:00 - 12:00`
+Teacher: `Smith` → `Johnson`
+Room: ~`R.101`~
+Status: `regular`
+Added Additional Info: `Exam (room tba)`

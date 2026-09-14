@@ -1,0 +1,14 @@
+*Next Lesson:*
+  Subject: `Biology-2`, Teacher: `Müller`
+  Time: `08:00 - 09:00`   `Wed 17/09/25`
+
+*Homework list:*
+• Lesson: `Physics`, Teacher: `Johnson`
+  Created at:  `Wed 10/09/25`
+  Deadline:     `Thu 18/09/25`
+  Task:  `Read p. 12-14 (\`notes\`)`
+
+Uptime:  `3 days, 5 hours, 1 minute`
+Last refresh:  `10:15:30 Tue 16/09/25`
+||[\(He keeps me in this basement full of care\)](https://github.com/CleverWild/untisgram)
+||
