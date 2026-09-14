@@ -1,0 +1,48 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_call:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - uses: Swatinem/rust-cache@v2
+
+    - name: Set up mise
+      uses: jdx/mise-action@v4
+
+    - name: Check formatting
+      run: mise run fmt-check
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - uses: Swatinem/rust-cache@v2
+
+    - name: Set up mise
+      uses: jdx/mise-action@v4
+
+    - name: Run Clippy
+      run: mise run clippy
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - uses: Swatinem/rust-cache@v2
+
+    - name: Run tests
+      run: cargo test --verbose

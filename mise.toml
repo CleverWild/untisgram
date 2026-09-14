@@ -1,0 +1,20 @@
+[tools]
+rust = { version = "latest", components = "rustfmt,clippy" }
+taplo = "latest"
+"cargo:cargo-sort" = "latest"
+
+[tasks.clippy]
+description = "Lint Rust code with Clippy"
+run = "cargo clippy --workspace --all-targets --all-features --keep-going -- -D clippy::all"
+
+[tasks.fmt]
+description = "Format Rust and TOML files"
+run = ["cargo fmt --all", "cargo sort --workspace --no-format", "taplo fmt"]
+
+[tasks.fmt-check]
+description = "Check Rust and TOML formatting"
+run = [
+    "cargo fmt --all -- --check",
+    "cargo sort --workspace --check --no-format",
+    "taplo fmt --check",
+]

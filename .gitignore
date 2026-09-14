@@ -1,5 +1,4 @@
 /target
 Secrets*.toml
-.github/instructions/*.md
 /.vscode
 /logs
