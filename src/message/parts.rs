@@ -111,7 +111,7 @@ impl<F: Fragment> Fragment for Line<F> {
     }
 }
 
-/// Content shown only in the diagnostic rendering, inside a DEBUG code block.
+/// Content shown only in diagnostic rendering.
 pub struct DebugBlock<F>(pub F);
 
 impl<F: Fragment> Fragment for DebugBlock<F> {
@@ -255,10 +255,7 @@ mod tests {
 
         let rendered = render_both(document());
         assert_eq!(rendered.public.as_str(), "visible||a||");
-        assert_eq!(
-            rendered.diagnostic.as_str(),
-            "visible*<\\-\\-\\-DEBUG\\-\\-\\-\\>*```\nsecret*<\\-\\-\\-DEBUG\\-\\-\\-\\>*```\nnested\n```\n```||a*<\\-\\-\\-DEBUG\\-\\-\\-\\>*```\nb\n```||"
-        );
+        assert_eq!(rendered.diagnostic.as_str(), "visiblesecretnested||ab||");
     }
 
     #[test]

@@ -9,7 +9,9 @@ pub use parts::{
     Bold, Code, CodeBlock, DebugBlock, Each, Either, Italic, Line, Link, Newline, Separator,
     Spoiler, Strike, Text,
 };
-pub use render::{Diagnostic, Public, Rendered, RenderedPair, render_both, render_public};
+pub use render::{
+    Diagnostic, MAX_TELEGRAM_TEXT_CHARS, Public, Rendered, RenderedPair, render_both, render_public,
+};
 pub use stream::{Fragment, Render};
 
 #[cfg(test)]
@@ -20,8 +22,8 @@ mod tests {
     use crate::{
         DEBUG_TELEGRAM_CHAT,
         diff_impl::Diff,
-        message_formatter::format_message,
-        test_support::{date, db_lesson, untis_lesson},
+        messages::{StatusMessage, lesson_message, render_notification_pages},
+        test_support::{date, db_lesson, homework, untis_lesson},
         utils::send_or_edit_message,
         work::Chat,
     };
@@ -60,7 +62,26 @@ mod tests {
             "202",     // Room changed
         );
 
-        let samples = [
+        let mut added_lesson = untis_lesson(
+            12346,
+            date(2025, 9, 18),
+            12,
+            13,
+            "Chemistry",
+            "Klein",
+            "Lab-1",
+        );
+        added_lesson.code = db::models::LessonCode::Cancelled;
+        let homeworks = vec![homework(
+            1,
+            "Physics",
+            "Johnson",
+            &"Read chapter 4 (pages 12-14) and solve every exercise. ".repeat(8),
+            date(2025, 9, 10),
+            date(2025, 9, 18),
+        )];
+
+        let mut samples = vec![
             // Only normal text
             render_both((
                 Line(Text("Changes in timetable:")),
@@ -95,11 +116,30 @@ mod tests {
                 DebugBlock(Text("Debug: new_lesson_id=888 kind=Added")),
             )),
             // Changed lesson (from/to comparison)
-            render_both(format_message(Diff::Changed {
+            render_both(lesson_message(Diff::Changed {
                 from: &from_lesson,
                 to: &to_lesson,
             })),
+            render_both(
+                StatusMessage::new(
+                    homeworks,
+                    std::slice::from_ref(&from_lesson),
+                    chrono::Utc::now() - chrono::Duration::hours(30),
+                    chrono_tz::Europe::Berlin,
+                )
+                .into_document(),
+            ),
         ];
+        samples.extend(
+            render_notification_pages(vec![
+                Diff::Changed {
+                    from: &from_lesson,
+                    to: &to_lesson,
+                },
+                Diff::Added(&added_lesson),
+            ])
+            .expect("sample notification fits into Telegram messages"),
+        );
 
         let preview_chat = Chat::public(DEBUG_TELEGRAM_CHAT.id, DEBUG_TELEGRAM_CHAT.thread_id);
         for (i, sample) in samples.into_iter().enumerate() {

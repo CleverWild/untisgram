@@ -1,47 +1,42 @@
+*Tue, 16 Sep*
 
-Date: 2025\-09\-16 Tuesday
-New lesson:
-Subject: `Biology`
-Time: `08:00 - 09:00`
-Teacher: `Weber`
-Room: `B.2`
-Status: `regular`
-*<\-\-\-DEBUG\-\-\-\>*```
-New lesson:
-Subject: `Biology`
-Time: `08:00 - 09:00`
-Teacher: `Weber`
-Room: `B.2`
-Status: `regular`Debug info: Added new lesson: Lesson \{ id: 101, date: Date\(2025\-09\-16\), start\_time: Time\(08:00:00\), end\_time: Time\(09:00:00\), lesson\_type: Lesson, code: Regular, lsnumber: 1, lstext: "", subst\_text: None, classes: \[IdItem \{ id: 1, name: "VABO1", orig\_id: None, orig\_name: None \}\], subjects: \[IdItem \{ id: 10, name: "Biology", orig\_id: None, orig\_name: None \}\], rooms: \[IdItem \{ id: 100, name: "B\.2", orig\_id: None, orig\_name: None \}\], teachers: \[IdItem \{ id: 50, name: "Weber", orig\_id: None, orig\_name: None \}\], statflags: "", activity\_type: "Unterricht" \}
-```\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
-Changes in lesson:
-Subject: `Mathematics`
-Time: `10:00 - 11:00`
-Teacher: `Smith` → `Johnson`
-Room: `R.101` → `R.202`
-Status: `regular`
-Added Additional Info: `Room swap (see board)`
-*<\-\-\-DEBUG\-\-\-\>*```
-Changes in lesson:
-Subject: `Mathematics`
-Time: `10:00 - 11:00`
-Teacher: `Smith` → `Johnson`
-Room: `R.101` → `R.202`
-Status: `regular`
-Added Additional Info: `Room swap (see board)`Debug info: Changed lesson from Lesson \{ bot\_state: 00000000\-0000\-0000\-0000\-000000000000, lesson\_id: 102, date: 2025\-09\-16, end\_time: 11:00:00, lesson\_type: "Unterricht", start\_time: 10:00:00, subst\_text: None, lesson\_code: Regular, classes: \["VABO1"\], rooms: \["R\.101"\], subjects: \["Mathematics"\], teachers: \["Smith"\] \} to Lesson \{ id: 102, date: Date\(2025\-09\-16\), start\_time: Time\(10:00:00\), end\_time: Time\(11:00:00\), lesson\_type: Lesson, code: Regular, lsnumber: 1, lstext: "", subst\_text: Some\("Room swap \(see board\)"\), classes: \[IdItem \{ id: 1, name: "VABO1", orig\_id: None, orig\_name: None \}\], subjects: \[IdItem \{ id: 10, name: "Mathematics", orig\_id: None, orig\_name: None \}\], rooms: \[IdItem \{ id: 100, name: "R\.202", orig\_id: None, orig\_name: None \}\], teachers: \[IdItem \{ id: 50, name: "Johnson", orig\_id: None, orig\_name: None \}\], statflags: "", activity\_type: "Unterricht" \}
+*➕ New lesson*
+Biology · 08:00–09:00
+Weber · B\.2
+
+*Debug*
 ```
-Date: 2025\-09\-17 Wednesday
-New lesson:
-Subject: `Chemistry`
-Time: `12:00 - 13:00`
-Teacher: `Klein`
-Room: `Lab-1`
-Status: `cancelled`
-*<\-\-\-DEBUG\-\-\-\>*```
-New lesson:
-Subject: `Chemistry`
-Time: `12:00 - 13:00`
-Teacher: `Klein`
-Room: `Lab-1`
-Status: `cancelled`Debug info: Added new lesson: Lesson \{ id: 103, date: Date\(2025\-09\-17\), start\_time: Time\(12:00:00\), end\_time: Time\(13:00:00\), lesson\_type: Lesson, code: Cancelled, lsnumber: 1, lstext: "", subst\_text: None, classes: \[IdItem \{ id: 1, name: "VABO1", orig\_id: None, orig\_name: None \}\], subjects: \[IdItem \{ id: 10, name: "Chemistry", orig\_id: None, orig\_name: None \}\], rooms: \[IdItem \{ id: 100, name: "Lab\-1", orig\_id: None, orig\_name: None \}\], teachers: \[IdItem \{ id: 50, name: "Klein", orig\_id: None, orig\_name: None \}\], statflags: "", activity\_type: "Unterricht" \}
+kind=added
+lesson_id=101
+date=2025-09-16
+changed_fields=
+```
+
+*🔄 Lesson changed*
+Mathematics · 10:00–11:00
+Teacher: Smith → Johnson
+Room: R\.101 → R\.202
+Info: Room swap \(see board\)
+
+*Debug*
+```
+kind=changed
+lesson_id=102
+date=2025-09-16
+changed_fields=teacher,room,info
+```
+
+<<< next message >>>
+*Wed, 17 Sep*
+
+*❌ Cancelled lesson*
+Chemistry · 12:00–13:00
+Klein · Lab\-1
+
+*Debug*
+```
+kind=added
+lesson_id=103
+date=2025-09-17
+changed_fields=
 ```

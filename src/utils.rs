@@ -10,7 +10,29 @@ use teloxide::{
 };
 use tokio::time::Instant;
 
-use crate::{diff_impl::Diff, message::Rendered, work::Chat};
+use crate::{
+    diff_impl::Diff,
+    message::{MAX_TELEGRAM_TEXT_CHARS, Rendered},
+    work::Chat,
+};
+
+#[derive(Debug, thiserror::Error)]
+#[error("rendered Telegram message has {actual} characters; limit is {limit}")]
+struct MessageTooLong {
+    actual: usize,
+    limit: usize,
+}
+
+fn validate_message_length<A>(text: &Rendered<A>) -> Result<(), MessageTooLong> {
+    let actual = text.char_count();
+    if actual > MAX_TELEGRAM_TEXT_CHARS {
+        return Err(MessageTooLong {
+            actual,
+            limit: MAX_TELEGRAM_TEXT_CHARS,
+        });
+    }
+    Ok(())
+}
 
 pub fn next_friday(from: NaiveDate) -> NaiveDate {
     let days_to_next_friday = (11 - from.weekday().num_days_from_monday()) % 7;
@@ -34,6 +56,7 @@ pub async fn send_or_edit_message<A>(
     text: Rendered<A>,
     message_id: &mut Option<i32>,
 ) -> Result<Message, eyre::Report> {
+    validate_message_length(&text)?;
     let text = text.into_string();
     let message = if let Some(msg_id) = message_id {
         tracing::debug!("Editing existing message");
@@ -82,6 +105,23 @@ pub fn align_next_minute() -> Instant {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::message::{Text, render_public};
+
+    #[test]
+    fn oversized_message_is_rejected_before_sending() {
+        let text = render_public(Text("x".repeat(MAX_TELEGRAM_TEXT_CHARS + 1)));
+
+        let error = validate_message_length(&text).unwrap_err().to_string();
+
+        assert!(error.contains("4097"), "{error}");
+        assert!(error.contains("4096"), "{error}");
+    }
+
+    #[test]
+    fn message_of_exactly_the_limit_is_accepted() {
+        let text = render_public(Text("x".repeat(MAX_TELEGRAM_TEXT_CHARS)));
+        assert!(validate_message_length(&text).is_ok());
+    }
 
     #[test]
     fn next_friday_test() {

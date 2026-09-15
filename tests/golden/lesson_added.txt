@@ -1,7 +1,4 @@
-New lesson:
-Subject: `English`
-Time: `08:00 - 09:00`
-Teacher: `Taylor`
-Room: `E.1`
-Status: `regular`
-Additional Info: `Bring dictionary!`
+*➕ New lesson*
+English · 08:00–09:00
+Taylor · E\.1
+Info: Bring dictionary\!

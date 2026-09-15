@@ -1,7 +1,4 @@
-*Homework list:*
-`Empty :)`
+*Homework*
+No pending homework\.
 
-Uptime:  `3 days, 5 hours, 1 minute`
-Last refresh:  `10:15:30 Tue 16/09/25`
-||[\(He keeps me in this basement full of care\)](https://github.com/CleverWild/untisgram)
-||
+_Updated 10:15 · up 3d 5h_

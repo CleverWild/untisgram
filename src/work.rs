@@ -1,17 +1,13 @@
 use std::{convert::Infallible, fmt, marker::PhantomData, time::Duration};
 
-use chrono::NaiveDate;
 use teloxide::{Bot, prelude::ChatId};
 use tracing::Instrument;
 
 use crate::{
     DEBUG_TELEGRAM_CHAT, IS_PROD,
     diff_impl::Diff,
-    message::{
-        DebugBlock, Diagnostic, Each, Either, Fragment, Newline, Public, Render, Separator, Text,
-        render_both, render_public,
-    },
-    message_formatter::{DebugInfo, format_message},
+    message::{Diagnostic, Public, render_public},
+    messages::{StatusMessage, render_notification_pages},
     utils::{next_friday, send_or_edit_message, sort_diffs},
 };
 use db::{DateTime, Utc, models::BotTask};
@@ -194,37 +190,43 @@ async fn process_timetable(
 
             tracing::debug!("Diff was found: {:#?}", diffs);
 
-            let rendered = render_both(Notification(diffs));
+            // Propagating would restart the worker on the same unsaved diff forever.
+            let pages = render_notification_pages(diffs).unwrap_or_else(|e| {
+                tracing::error!("Failed to render notification message: {e}");
+                Vec::new()
+            });
 
-            if IS_PROD {
-                // Send message to production target
-                tracing::debug!(
-                    "Sending to chat `{}` with topic `{:?}` message:\n{}",
-                    notification_chat_id,
-                    notification_thread_id,
-                    rendered.diagnostic
-                );
+            for rendered in pages {
+                if IS_PROD {
+                    // Send message to production target
+                    tracing::debug!(
+                        "Sending to chat `{}` with topic `{:?}` message:\n{}",
+                        notification_chat_id,
+                        notification_thread_id,
+                        rendered.diagnostic
+                    );
+                    if let Err(e) = send_or_edit_message(
+                        &ctx.bot,
+                        Chat::public(ChatId(*notification_chat_id), *notification_thread_id),
+                        rendered.public,
+                        &mut None,
+                    )
+                    .await
+                    {
+                        tracing::error!("Failed to send/edit notification message: {e}");
+                    }
+                }
+                // Send message to debug target
                 if let Err(e) = send_or_edit_message(
                     &ctx.bot,
-                    Chat::public(ChatId(*notification_chat_id), *notification_thread_id),
-                    rendered.public,
+                    DEBUG_TELEGRAM_CHAT,
+                    rendered.diagnostic,
                     &mut None,
                 )
                 .await
                 {
-                    tracing::error!("Failed to send/edit notification message: {e}");
+                    tracing::error!("Failed to send/edit debug notification message: {e}");
                 }
-            }
-            // Send message to debug target
-            if let Err(e) = send_or_edit_message(
-                &ctx.bot,
-                DEBUG_TELEGRAM_CHAT,
-                rendered.diagnostic,
-                &mut None,
-            )
-            .await
-            {
-                tracing::error!("Failed to send/edit debug notification message: {e}");
             }
         }
     }
@@ -296,8 +298,7 @@ async fn update_status(ctx: &mut WorkerContext, tz: chrono_tz::Tz) -> Result<(),
         .collect();
 
     let status_message = render_public(
-        crate::status::StatusMessage::new(homeworks, &timetable, ctx.engaged_at, tz)
-            .into_document(),
+        StatusMessage::new(homeworks, &timetable, ctx.engaged_at, tz).into_document(),
     );
 
     if let Err(e) = send_or_edit_message(
@@ -312,127 +313,4 @@ async fn update_status(ctx: &mut WorkerContext, tz: chrono_tz::Tz) -> Result<(),
     }
 
     Ok(())
-}
-
-/// All lesson changes of one timetable refresh, grouped by date.
-struct Notification<'a>(Vec<Diff<'a>>);
-
-impl<'a> Fragment for Notification<'a> {
-    fn parts(self) -> impl Render {
-        let mut previous_date = None;
-        let changes = self.0.into_iter().map(move |diff| {
-            let date = diff.date();
-            let heading = if previous_date == Some(date) {
-                Either::Right(Separator)
-            } else {
-                previous_date = Some(date);
-                Either::Left(DateHeading(date))
-            };
-            LessonChange { heading, diff }
-        });
-
-        Each(changes).parts()
-    }
-}
-
-struct DateHeading(NaiveDate);
-
-impl Fragment for DateHeading {
-    fn parts(self) -> impl Render {
-        let date = self.0;
-        (
-            Newline,
-            Text(format!("Date: {date} {}", date.format("%A"))),
-            Newline,
-        )
-            .parts()
-    }
-}
-
-struct LessonChange<'a> {
-    heading: Either<DateHeading, Separator>,
-    diff: Diff<'a>,
-}
-
-impl<'a> Fragment for LessonChange<'a> {
-    fn parts(self) -> impl Render {
-        (
-            self.heading,
-            format_message(self.diff.clone()),
-            Newline,
-            DebugBlock((format_message(self.diff.clone()), DebugInfo(self.diff))),
-        )
-            .parts()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::test_support::{Golden, assert_golden, date, db_lesson, untis_lesson};
-
-    struct Fixture {
-        added_first_day: webuntis::Lesson,
-        changed_from: db::models::Lesson,
-        changed_to: webuntis::Lesson,
-        added_second_day: webuntis::Lesson,
-    }
-
-    fn fixture() -> Fixture {
-        let original = untis_lesson(
-            102,
-            date(2025, 9, 16),
-            10,
-            11,
-            "Mathematics",
-            "Smith",
-            "R.101",
-        );
-        let mut changed_to = untis_lesson(
-            102,
-            date(2025, 9, 16),
-            10,
-            11,
-            "Mathematics",
-            "Johnson",
-            "R.202",
-        );
-        changed_to.subst_text = Some("Room swap (see board)".to_string());
-        let mut added_second_day = untis_lesson(
-            103,
-            date(2025, 9, 17),
-            12,
-            13,
-            "Chemistry",
-            "Klein",
-            "Lab-1",
-        );
-        added_second_day.code = db::models::LessonCode::Cancelled;
-
-        Fixture {
-            added_first_day: untis_lesson(101, date(2025, 9, 16), 8, 9, "Biology", "Weber", "B.2"),
-            changed_from: db_lesson(&original),
-            changed_to,
-            added_second_day,
-        }
-    }
-
-    fn diffs(fixture: &Fixture) -> Vec<Diff<'_>> {
-        vec![
-            Diff::Added(&fixture.added_first_day),
-            Diff::Changed {
-                from: &fixture.changed_from,
-                to: &fixture.changed_to,
-            },
-            Diff::Added(&fixture.added_second_day),
-        ]
-    }
-
-    #[test]
-    fn golden_notification() {
-        let fixture = fixture();
-        let rendered = render_both(Notification(diffs(&fixture)));
-        assert_golden(Golden::NotificationPublic, rendered.public.as_str());
-        assert_golden(Golden::NotificationDiagnostic, rendered.diagnostic.as_str());
-    }
 }

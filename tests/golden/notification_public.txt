@@ -1,24 +1,18 @@
+*Tue, 16 Sep*
 
-Date: 2025\-09\-16 Tuesday
-New lesson:
-Subject: `Biology`
-Time: `08:00 - 09:00`
-Teacher: `Weber`
-Room: `B.2`
-Status: `regular`
-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
-Changes in lesson:
-Subject: `Mathematics`
-Time: `10:00 - 11:00`
-Teacher: `Smith` → `Johnson`
-Room: `R.101` → `R.202`
-Status: `regular`
-Added Additional Info: `Room swap (see board)`
+*➕ New lesson*
+Biology · 08:00–09:00
+Weber · B\.2
 
-Date: 2025\-09\-17 Wednesday
-New lesson:
-Subject: `Chemistry`
-Time: `12:00 - 13:00`
-Teacher: `Klein`
-Room: `Lab-1`
-Status: `cancelled`
+*🔄 Lesson changed*
+Mathematics · 10:00–11:00
+Teacher: Smith → Johnson
+Room: R\.101 → R\.202
+Info: Room swap \(see board\)
+
+<<< next message >>>
+*Wed, 17 Sep*
+
+*❌ Cancelled lesson*
+Chemistry · 12:00–13:00
+Klein · Lab\-1

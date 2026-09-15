@@ -7,8 +7,9 @@ use super::{
     stream::{Fragment, Render},
 };
 
-const DIAGNOSTIC_HEADER: &str = "<---DEBUG--->";
 const SEPARATOR: &str = "----------------";
+
+pub const MAX_TELEGRAM_TEXT_CHARS: usize = 4_096;
 
 /// Audience marker: output without debug blocks, safe for any chat.
 #[derive(Debug, Clone, Copy)]
@@ -39,6 +40,12 @@ impl<A> Rendered<A> {
     pub fn into_string(self) -> String {
         self.text
     }
+
+    /// Counts the raw MarkdownV2, which overestimates the length Telegram checks after parsing
+    /// entities, so a value within the limit is always accepted.
+    pub fn char_count(&self) -> usize {
+        self.text.chars().count()
+    }
 }
 
 impl<A> fmt::Display for Rendered<A> {
@@ -54,9 +61,16 @@ impl<A> fmt::Debug for Rendered<A> {
 }
 
 /// Both renderings of one document.
+#[derive(Debug)]
 pub struct RenderedPair {
     pub public: Rendered<Public>,
     pub diagnostic: Rendered<Diagnostic>,
+}
+
+impl RenderedPair {
+    pub fn max_char_count(&self) -> usize {
+        self.public.char_count().max(self.diagnostic.char_count())
+    }
 }
 
 /// Renders `document` without its `DebugBlock` parts.
@@ -128,11 +142,7 @@ impl MarkdownV2 {
                 &markdown::escape(label.as_str()),
             )),
             Event::Open(style) | Event::Close(style) => out.push_str(delimiter(*style)),
-            Event::EnterDiagnostic => {
-                out.push_str(&markdown::bold(&markdown::escape(DIAGNOSTIC_HEADER)));
-                out.push_str("```\n");
-            }
-            Event::ExitDiagnostic => out.push_str("\n```"),
+            Event::EnterDiagnostic | Event::ExitDiagnostic => {}
         }
     }
 }
@@ -157,5 +167,11 @@ mod tests {
             format!("{:?}", render_public(Text("a"))),
             format!("{:?}", "a")
         );
+    }
+
+    #[test]
+    fn rendered_length_counts_unicode_characters() {
+        let rendered = render_public(Text("🔄ä"));
+        assert_eq!(rendered.char_count(), 2);
     }
 }

@@ -5,8 +5,7 @@ use crate::{message::Diagnostic, work::Chat};
 pub mod cleanup;
 pub mod diff_impl;
 pub mod message;
-pub mod message_formatter;
-pub mod status;
+pub mod messages;
 pub mod utils;
 pub mod work;
 

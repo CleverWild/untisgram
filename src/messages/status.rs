@@ -4,15 +4,13 @@ use chrono::{DateTime, NaiveDate, NaiveTime, Timelike as _, Utc};
 use chrono_tz::Tz;
 use webuntis::Homework;
 
-use crate::message::{
-    Bold, Code, Each, Either, Fragment, Line, Link, Newline, Render, Spoiler, Text,
+use crate::{
+    message::{Bold, Each, Either, Fragment, Italic, Line, Newline, Render, Text},
+    messages::{DATE_FORMAT, MIDDLE_DOT, join_present, time_range},
 };
 
-const REPOSITORY_URL: &str = "https://github.com/CleverWild/untisgram";
-const HOMEWORK_DATE_FORMAT: &str = "%a %d/%m/%y";
-
 #[derive(Debug, Clone)]
-pub struct StatusMessage {
+pub(crate) struct StatusMessage {
     homeworks: Vec<Homework>,
     current_or_next_lesson: Option<NearestLesson>,
     timestamp: DateTime<Utc>,
@@ -26,7 +24,7 @@ enum NearestLesson {
 }
 
 impl StatusMessage {
-    pub fn new(
+    pub(crate) fn new(
         homeworks: Vec<Homework>,
         timetable: &[db::models::Lesson],
         uptime_since: DateTime<Utc>,
@@ -62,154 +60,136 @@ impl StatusMessage {
         let local_now = now.with_timezone(&self.timezone);
         let today = local_now.date_naive();
 
-        let nearest_lesson = self.current_or_next_lesson.map(|nearest| match nearest {
-            NearestLesson::Current(lesson) => NearestLessonPart {
-                title: "Current Lesson:",
-                lesson,
-                today,
-            },
-            NearestLesson::Next(lesson) => NearestLessonPart {
-                title: "Next Lesson:",
-                lesson,
-                today,
-            },
-        });
-        let footer = StatusFooter {
+        let nearest_lesson = self
+            .current_or_next_lesson
+            .map(|nearest| NearestLessonView::new(nearest, today));
+        let homework =
+            HomeworkSection(self.homeworks.into_iter().map(HomeworkView::from).collect());
+        let footer = StatusFooterView {
+            refreshed_at: local_now.format("%H:%M").to_string(),
             uptime: into_uptime(
                 (now - self.timestamp)
                     .to_std()
                     .unwrap_or(Duration::from_secs(0)),
             ),
-            last_refresh: local_now.format("%H:%M:%S %a %d/%m/%y").to_string(),
         };
 
-        (nearest_lesson, HomeworkList(self.homeworks), footer)
+        (nearest_lesson, homework, footer)
     }
 }
 
-struct NearestLessonPart {
-    title: &'static str,
-    lesson: db::models::Lesson,
-    today: NaiveDate,
+struct NearestLessonView {
+    heading: &'static str,
+    subjects: String,
+    time: String,
+    date: Option<String>,
+    teachers: String,
+    rooms: String,
 }
 
-impl Fragment for NearestLessonPart {
+impl NearestLessonView {
+    fn new(nearest: NearestLesson, today: NaiveDate) -> Self {
+        let (heading, lesson) = match nearest {
+            NearestLesson::Current(lesson) => ("Now", lesson),
+            NearestLesson::Next(lesson) => ("Next", lesson),
+        };
+
+        Self {
+            heading,
+            subjects: lesson.subjects.join(", "),
+            time: time_range(lesson.start_time, lesson.end_time),
+            date: (lesson.date != today).then(|| lesson.date.format(DATE_FORMAT).to_string()),
+            teachers: lesson.teachers.join(", "),
+            rooms: lesson.rooms.join(", "),
+        }
+    }
+}
+
+impl Fragment for NearestLessonView {
     fn parts(self) -> impl Render {
-        let lesson = self.lesson;
-        let teachers = (!lesson.teachers.is_empty())
-            .then(|| (Text(", Teacher: "), Code(lesson.teachers.join(", "))));
-        let rooms =
-            (!lesson.rooms.is_empty()).then(|| (Text(", Room: "), Code(lesson.rooms.join(", "))));
-        let time = format!(
-            "{} - {}",
-            lesson.start_time.format("%H:%M"),
-            lesson.end_time.format("%H:%M")
-        );
-        let other_day = (lesson.date != self.today).then(|| {
-            (
-                Text("   "),
-                Code(lesson.date.format("%a %d/%m/%y").to_string()),
-            )
-        });
+        let summary = join_present([
+            self.subjects.as_str(),
+            self.time.as_str(),
+            self.date.as_deref().unwrap_or_default(),
+        ]);
+        let people_and_room = join_present([self.teachers.as_str(), self.rooms.as_str()]);
 
         (
-            Line(Bold(Text(self.title))),
-            Line((
-                Text("  Subject: "),
-                Code(lesson.subjects.join(", ")),
-                teachers,
-                rooms,
-            )),
-            Line((Text("  Time: "), Code(time), other_day)),
+            Line(Bold(Text(self.heading))),
+            summary.map(|summary| Line(Text(summary))),
+            people_and_room.map(|people_and_room| Line(Text(people_and_room))),
             Newline,
         )
             .parts()
     }
 }
 
-struct HomeworkList(Vec<Homework>);
+struct HomeworkSection(Vec<HomeworkView>);
 
-impl Fragment for HomeworkList {
+impl Fragment for HomeworkSection {
     fn parts(self) -> impl Render {
         let entries = if self.0.is_empty() {
-            Either::Left((Line(Code("Empty :)")), Newline))
+            Either::Left((Line(Text("No pending homework.")), Newline))
         } else {
-            Either::Right(Each(self.0.into_iter().map(HomeworkEntry)))
+            Either::Right(Each(self.0))
         };
 
-        (Line(Bold(Text("Homework list:"))), entries).parts()
+        (Line(Bold(Text("Homework"))), entries).parts()
     }
 }
 
-struct HomeworkEntry(Homework);
+struct HomeworkView {
+    due: String,
+    subject: String,
+    task: String,
+}
 
-impl Fragment for HomeworkEntry {
+impl From<Homework> for HomeworkView {
+    fn from(homework: Homework) -> Self {
+        Self {
+            due: homework.due_date.format(DATE_FORMAT).to_string(),
+            subject: homework.lesson.subject,
+            task: homework.text,
+        }
+    }
+}
+
+impl Fragment for HomeworkView {
     fn parts(self) -> impl Render {
-        let homework = self.0;
         (
-            Line((
-                Text("• Lesson: "),
-                Code(homework.lesson.subject),
-                Text(", Teacher: "),
-                Code(homework.teacher.name),
-            )),
-            Line((
-                Text("  Created at:  "),
-                Code(homework.date.format(HOMEWORK_DATE_FORMAT).to_string()),
-            )),
-            Line((
-                Text("  Deadline:     "),
-                Code(homework.due_date.format(HOMEWORK_DATE_FORMAT).to_string()),
-            )),
-            Line((Text("  Task:  "), Code(homework.text))),
+            Line(Bold((Text(self.due), Text(MIDDLE_DOT), Text(self.subject)))),
+            Line(Text(self.task)),
             Newline,
         )
             .parts()
     }
 }
 
-struct StatusFooter {
+struct StatusFooterView {
+    refreshed_at: String,
     uptime: String,
-    last_refresh: String,
 }
 
-impl Fragment for StatusFooter {
+impl Fragment for StatusFooterView {
     fn parts(self) -> impl Render {
-        (
-            Line((Text("Uptime:  "), Code(self.uptime))),
-            Line((Text("Last refresh:  "), Code(self.last_refresh))),
-            Spoiler(Line(Link {
-                label: "(He keeps me in this basement full of care)",
-                url: REPOSITORY_URL,
-            })),
-        )
-            .parts()
+        Line(Italic(Text(format!(
+            "Updated {} · up {}",
+            self.refreshed_at, self.uptime
+        ))))
+        .parts()
     }
 }
 
-fn plural(n: u64, one: &str, many: &str) -> String {
-    if n == 1 {
-        one.to_string()
-    } else {
-        many.to_string()
+fn into_uptime(duration: Duration) -> String {
+    let minutes = duration.as_secs() / 60;
+    let days = minutes / 1_440;
+    let hours = minutes % 1_440 / 60;
+    let minutes = minutes % 60;
+    match (days, hours) {
+        (0, 0) => format!("{minutes}m"),
+        (0, hours) => format!("{hours}h {minutes}m"),
+        (days, hours) => format!("{days}d {hours}h"),
     }
-}
-
-fn into_uptime(d: Duration) -> String {
-    let total_minutes = d.as_secs() / 60;
-    let days = total_minutes / (24 * 60);
-    let hours = (total_minutes % (24 * 60)) / 60;
-    let minutes = total_minutes % 60;
-
-    format!(
-        "{d} {}, {h} {}, {m} {}",
-        plural(days, "day", "days"),
-        plural(hours, "hour", "hours"),
-        plural(minutes, "minute", "minutes"),
-        d = days,
-        h = hours,
-        m = minutes
-    )
 }
 
 /// Find the current lesson (if ongoing) or the next upcoming lesson
@@ -309,8 +289,12 @@ mod tests {
         )
     }
 
+    fn render(status: StatusMessage) -> String {
+        render_public(status.into_document_at(now())).into_string()
+    }
+
     fn assert_status_golden(name: Golden, status: StatusMessage) {
-        assert_golden(name, render_public(status.into_document_at(now())).as_str());
+        assert_golden(name, &render(status));
     }
 
     #[test]
@@ -345,6 +329,33 @@ mod tests {
         assert_status_golden(
             Golden::StatusMultipleHomework,
             status(vec![physics_homework(), history_homework()], None),
+        );
+    }
+
+    #[test]
+    fn status_without_teacher_and_room_has_no_dangling_separator() {
+        let mut lesson = current_lesson();
+        lesson.teachers.clear();
+        lesson.rooms.clear();
+
+        let rendered = render(status(vec![], Some(NearestLesson::Current(lesson))));
+
+        assert!(rendered.starts_with("*Now*\nMathematics · 10:00–11:00\n\n*Homework*\n"));
+        assert!(!rendered.contains(" · \n"));
+        assert!(!rendered.contains("Teacher"));
+        assert!(!rendered.contains("Room"));
+    }
+
+    #[test]
+    fn uptime_is_compact() {
+        assert_eq!(into_uptime(Duration::from_secs(59)), "0m");
+        assert_eq!(
+            into_uptime(Duration::from_secs(2 * 3_600 + 5 * 60)),
+            "2h 5m"
+        );
+        assert_eq!(
+            into_uptime(Duration::from_secs(3 * 86_400 + 5 * 3_600 + 60)),
+            "3d 5h"
         );
     }
 }

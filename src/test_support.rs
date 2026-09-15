@@ -8,7 +8,7 @@ pub(super) fn date(year: i32, month: u32, day: u32) -> NaiveDate {
     NaiveDate::from_ymd_opt(year, month, day).unwrap()
 }
 
-fn id_item(id: isize, name: &str) -> IdItem {
+pub(super) fn id_item(id: isize, name: &str) -> IdItem {
     IdItem {
         id,
         name: name.to_string(),
@@ -102,7 +102,9 @@ pub(super) enum Golden {
     EscapingDiagnostic,
     EscapingPublic,
     LessonAdded,
+    LessonCancelled,
     LessonChanged,
+    LessonMultipleSubjects,
     NotificationDiagnostic,
     NotificationPublic,
     StatusCurrentLesson,

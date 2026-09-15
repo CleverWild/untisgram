@@ -11,6 +11,4 @@ let x = 1;
 ~gone \(really\)`old-value`~
 ||[Docs \(v2\) \[beta\]](https://example.com/a_(b\)?q=\`x\`)||
 ||~nested\!~||
-*<\-\-\-DEBUG\-\-\-\>*```
 debug\-only: 1\.0||hidden||
-```
