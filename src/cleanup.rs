@@ -42,15 +42,6 @@ pub async fn daily_cleanup_loop() -> Result<Infallible, eyre::Report> {
                 tracing::error!("Failed to cleanup old lessons: {e}");
             }
         }
-
-        match cleanup_old_logs().await {
-            Ok(deleted_logs) => {
-                tracing::info!("Deleted {deleted_logs} old log entries (>7 days)");
-            }
-            Err(e) => {
-                tracing::error!("Failed to cleanup old logs: {e}");
-            }
-        }
     }
 }
 
@@ -61,12 +52,4 @@ async fn cleanup_old_lessons() -> eyre::Result<usize> {
     let deleted_count = db::models::delete_lessons_before(today)?;
 
     Ok(deleted_count)
-}
-
-/// Remove log entries older than 7 days
-async fn cleanup_old_logs() -> eyre::Result<usize> {
-    use chrono::Duration;
-    let cutoff = chrono::Utc::now() - Duration::days(7);
-    let deleted = db::models::delete_logs_before(cutoff)?;
-    Ok(deleted)
 }

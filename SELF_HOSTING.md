@@ -52,7 +52,9 @@ The bot also reads these files from its working directory:
 DATABASE_URL=postgres://untis:pass@127.0.0.1:5433/untis BOT_TOKEN=123456:token ./target/release/untisgram
 ```
 
-On start, the bot applies database migrations and clears old entries in the `logs` table. It does nothing else until you add a task.
+On start, the bot applies database migrations. It does nothing else until you add a task.
+
+Logs go to stdout. Release builds print one JSON object per line. With Dokku, follow them with `dokku logs untisgram -t`.
 
 ## 5. Add a task
 

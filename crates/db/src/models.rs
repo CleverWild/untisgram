@@ -6,7 +6,7 @@
 // tweak these to match exact types and use `Insertable` / `AsChangeset` as
 // required.
 
-use crate::schema::{bot_states, lessons, logs};
+use crate::schema::{bot_states, lessons};
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use diesel::{AsChangeset, Identifiable, Insertable, Queryable, Selectable};
 use diesel_derive_enum::DbEnum;
@@ -468,74 +468,4 @@ pub fn delete_lessons_before(before_date: chrono::NaiveDate) -> eyre::Result<usi
     diesel::delete(lessons::table.filter(lessons::date.lt(before_date)))
         .execute(&mut conn)
         .map_err(|e| eyre::eyre!("failed to delete old lessons: {e}"))
-}
-
-#[derive(
-    Debug, Clone, Queryable, Identifiable, Selectable, Serialize, Deserialize, restructed::Models,
-)]
-#[view(
-    NewLogEntry,
-    derive(Insertable, Serialize, Deserialize),
-    attributes_with = "deriveless",
-    omit(ts)
-)]
-#[diesel(table_name = logs)]
-pub struct LogEntry {
-    pub id: Uuid,
-    pub ts: DateTime<Utc>,
-    pub level: String,
-    pub target: Option<String>,
-    pub message: String,
-    pub fields: Option<serde_json::Value>,
-    pub file: Option<String>,
-    pub line: Option<i32>,
-}
-
-impl NewLogEntry {
-    /// Insert a new log entry and return the inserted row.
-    pub fn insert(self) -> eyre::Result<LogEntry> {
-        use crate::diesel_impl::global_pool;
-        use diesel::prelude::*;
-
-        let pool = global_pool()?;
-        let mut conn = pool.get()?;
-
-        diesel::insert_into(logs::table)
-            .values(&self)
-            .returning(LogEntry::as_returning())
-            .get_result(&mut conn)
-            .map_err(|e| eyre::eyre!("failed to insert log entry: {e}"))
-    }
-}
-
-impl LogEntry {
-    /// Fetch latest N log entries.
-    pub fn latest(limit: i64) -> eyre::Result<Vec<LogEntry>> {
-        use crate::diesel_impl::global_pool;
-        use diesel::prelude::*;
-
-        let pool = global_pool()?;
-        let mut conn = pool.get()?;
-
-        logs::table
-            .order(logs::ts.desc())
-            .limit(limit)
-            .select(LogEntry::as_select())
-            .load(&mut conn)
-            .map_err(|e| eyre::eyre!("failed to fetch log entries: {e}"))
-    }
-}
-
-/// Delete log entries with timestamp before provided UTC time.
-pub fn delete_logs_before(before: DateTime<Utc>) -> eyre::Result<usize> {
-    use crate::diesel_impl::global_pool;
-    use crate::schema::logs;
-    use diesel::prelude::*;
-
-    let pool = global_pool()?;
-    let mut conn = pool.get()?;
-
-    diesel::delete(logs::table.filter(logs::ts.lt(before)))
-        .execute(&mut conn)
-        .map_err(|e| eyre::eyre!("failed to delete old logs: {e}"))
 }

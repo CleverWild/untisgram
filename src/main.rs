@@ -29,44 +29,26 @@ async fn main() {
             .unwrap(),
         );
 
-    if IS_PROD {
-        // Console layer (no ANSI in prod by default)
-        let console_layer = tracing_subscriber::fmt::layer()
+    let console_layer = if IS_PROD {
+        tracing_subscriber::fmt::layer()
+            .json()
+            .flatten_event(true)
+            .with_file(true)
             .with_line_number(true)
-            .with_ansi(false);
-
-        // DB log layer should capture all levels including TRACE
-        let db_layer = db::logging::db_log_layer().with_filter(
-            tracing_subscriber::EnvFilter::builder()
-                .with_default_directive(LevelFilter::TRACE.into())
-                .from_env_lossy(),
-        );
-
-        tracing_subscriber::registry()
-            .with(env_filter)
-            .with(console_layer)
-            .with(db_layer)
-            .init();
+            .with_ansi(false)
+            .boxed()
     } else {
-        // Pretty, colored console output for development
-        let console_layer = tracing_subscriber::fmt::layer()
+        tracing_subscriber::fmt::layer()
             .pretty()
             .with_line_number(true)
-            .with_ansi(true);
+            .with_ansi(true)
+            .boxed()
+    };
 
-        // DB log layer should capture all levels including TRACE
-        let db_layer = db::logging::db_log_layer().with_filter(
-            tracing_subscriber::EnvFilter::builder()
-                .with_default_directive(LevelFilter::TRACE.into())
-                .from_env_lossy(),
-        );
-
-        tracing_subscriber::registry()
-            .with(env_filter)
-            .with(console_layer)
-            .with(db_layer)
-            .init();
-    }
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(console_layer)
+        .init();
 
     let token = {
         // Try to load from environment variable first, then from file
@@ -88,12 +70,7 @@ async fn main() {
         tracing::error!("Failed to initialize database: {e}");
         panic!("Cannot continue without database");
     }
-
-    db::models::delete_logs_before(chrono::Utc::now()).unwrap();
     tracing::info!("Database initialized");
-
-    // Late start DB log worker after successful DB initialization
-    db::logging::start_db_log_worker();
 
     let mut join_handles = JoinSet::new();
     let mut running_tasks: HashMap<db::Uuid, tokio::task::AbortHandle> = HashMap::new();
@@ -113,6 +90,7 @@ async fn main() {
             Ok(states) => states,
             Err(e) => {
                 tracing::error!("Failed to fetch bot states: {e}");
+                interval.tick().await;
                 continue;
             }
         };

@@ -45,19 +45,6 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    logs (id) {
-        id -> Uuid,
-        ts -> Timestamptz,
-        level -> Text,
-        target -> Nullable<Text>,
-        message -> Text,
-        fields -> Nullable<Jsonb>,
-        file -> Nullable<Text>,
-        line -> Nullable<Int4>,
-    }
-}
-
 diesel::joinable!(lessons -> bot_states (bot_state));
 
-diesel::allow_tables_to_appear_in_same_query!(bot_states, lessons, logs,);
+diesel::allow_tables_to_appear_in_same_query!(bot_states, lessons,);
